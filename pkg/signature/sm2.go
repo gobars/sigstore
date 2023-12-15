@@ -116,7 +116,7 @@ func LoadSM2Verifier(pub *sm2.PublicKey, hashFunc myhash.Hash) (*SM2Verifier, er
 		return nil, errors.New("invalid ECDSA public key specified")
 	}
 
-	if !isSupportedAlg(hashFunc, ecdsaSupportedHashFuncs) {
+	if !isSupportedAlg(hashFunc, sm2SupportedHashFuncs) {
 		return nil, errors.New("invalid hash function specified")
 	}
 
