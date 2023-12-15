@@ -3,7 +3,7 @@ package x509
 import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/gobars/sigstore/pkg/signature/sm2"
 	"math/big"
 	"net"
 	"testing"

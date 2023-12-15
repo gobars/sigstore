@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/gobars/sigstore/pkg/signature/sm2"
 	"math/big"
 )
 

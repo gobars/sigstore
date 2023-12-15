@@ -3,7 +3,6 @@ Copyright Suzhou Tongji Fintech Research Institute 2017 All Rights Reserved.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
                  http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
@@ -22,13 +21,12 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/sm2"
 	"math/big"
 	"net"
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 func TestX509(t *testing.T) {

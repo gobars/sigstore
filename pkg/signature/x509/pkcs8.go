@@ -28,11 +28,10 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
+	"github.com/gobars/sigstore/pkg/signature/sm2"
 	"hash"
 	"math/big"
 	"reflect"
-
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 /*

@@ -33,6 +33,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash/sm3"
+	"github.com/gobars/sigstore/pkg/signature/sm2"
 	"hash"
 	"io"
 	"math/big"
@@ -40,9 +42,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tjfoc/gmsm/sm2"
-
-	"github.com/tjfoc/gmsm/sm3"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )
@@ -2592,7 +2591,7 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	if template.SignatureAlgorithm.isRSAPSS() {
 		signerOpts = &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
-			Hash: crypto.Hash(hashFunc),
+			Hash:       crypto.Hash(hashFunc),
 		}
 	}
 
