@@ -1,4 +1,5 @@
-module github.com/sigstore/sigstore/test/fuzz
+module github.com/gobars/sigstore/test/fuzz
+replace github.com/gobars/sigstore => ../../
 
 go 1.20
 
@@ -6,7 +7,7 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20211102141018-f7be0cbad29c
 	github.com/dvyukov/go-fuzz v0.0.0-20210914135545-4980593459a1
 	github.com/secure-systems-lab/go-securesystemslib v0.7.0
-	github.com/sigstore/sigstore v1.7.6
+	github.com/gobars/sigstore v1.7.6
 )
 
 require (

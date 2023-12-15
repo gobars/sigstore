@@ -18,7 +18,7 @@ package ssh
 import (
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/gobars/sigstore/pkg/signature"
 	"golang.org/x/crypto/ssh"
 )
 

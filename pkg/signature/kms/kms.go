@@ -20,9 +20,10 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"strings"
 
-	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/gobars/sigstore/pkg/signature"
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
@@ -38,7 +39,7 @@ func (e *ProviderNotFoundError) Error() string {
 //
 // It takes a provider-specific resource ID and hash function, and returns a
 // SignerVerifier using that resource, or any error that was encountered.
-type ProviderInit func(context.Context, string, crypto.Hash, ...signature.RPCOption) (SignerVerifier, error)
+type ProviderInit func(context.Context, string, myhash.Hash, ...signature.RPCOption) (SignerVerifier, error)
 
 // AddProvider adds the provider implementation into the local cache
 func AddProvider(keyResourceID string, init ProviderInit) {
@@ -50,7 +51,7 @@ var providersMap = map[string]ProviderInit{}
 // Get returns a KMS SignerVerifier for the given resource string and hash function.
 // If no matching provider is found, Get returns a ProviderNotFoundError. It
 // also returns an error if initializing the SignerVerifier fails.
-func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
+func Get(ctx context.Context, keyResourceID string, hashFunc myhash.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, pi := range providersMap {
 		if strings.HasPrefix(keyResourceID, ref) {
 			return pi(ctx, keyResourceID, hashFunc, opts...)
@@ -72,7 +73,7 @@ func SupportedProviders() []string {
 type SignerVerifier interface {
 	signature.SignerVerifier
 	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)
-	CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error)
+	CryptoSigner(ctx context.Context, errFunc func(error)) (myhash.Signer, myhash.SignerOpts, error)
 	SupportedAlgorithms() []string
 	DefaultAlgorithm() string
 }

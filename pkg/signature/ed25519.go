@@ -22,11 +22,12 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 )
 
-var ed25519SupportedHashFuncs = []crypto.Hash{
-	crypto.Hash(0),
+var ed25519SupportedHashFuncs = []myhash.Hash{
+	myhash.Hash(0),
 }
 
 // ED25519Signer is a signature.Signer that uses the Ed25519 public-key signature system
@@ -56,7 +57,7 @@ func LoadED25519Signer(priv ed25519.PrivateKey) (*ED25519Signer, error) {
 //
 // All options are ignored.
 func (e ED25519Signer) SignMessage(message io.Reader, _ ...SignOption) ([]byte, error) {
-	messageBytes, _, err := ComputeDigestForSigning(message, crypto.Hash(0), ed25519SupportedHashFuncs)
+	messageBytes, _, err := ComputeDigestForSigning(message, myhash.Hash(0), ed25519SupportedHashFuncs)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (e ED25519Signer) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error)
 
 // Sign computes the signature for the specified message; the first and third arguments to this
 // function are ignored as they are not used by the ED25519 algorithm.
-func (e ED25519Signer) Sign(_ io.Reader, message []byte, _ crypto.SignerOpts) ([]byte, error) {
+func (e ED25519Signer) Sign(_ io.Reader, message []byte, _ myhash.SignerOpts) ([]byte, error) {
 	if message == nil {
 		return nil, errors.New("message must not be nil")
 	}
@@ -119,7 +120,7 @@ func (e *ED25519Verifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, err
 //
 // All options are ignored if specified.
 func (e *ED25519Verifier) VerifySignature(signature, message io.Reader, _ ...VerifyOption) error {
-	messageBytes, _, err := ComputeDigestForVerifying(message, crypto.Hash(0), ed25519SupportedHashFuncs)
+	messageBytes, _, err := ComputeDigestForVerifying(message, myhash.Hash(0), ed25519SupportedHashFuncs)
 	if err != nil {
 		return err
 	}

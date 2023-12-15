@@ -19,12 +19,13 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
-	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 var awsSupportedAlgorithms = []types.CustomerMasterKeySpec{
@@ -36,10 +37,10 @@ var awsSupportedAlgorithms = []types.CustomerMasterKeySpec{
 	types.CustomerMasterKeySpecEccNistP521,
 }
 
-var awsSupportedHashFuncs = []crypto.Hash{
-	crypto.SHA256,
-	crypto.SHA384,
-	crypto.SHA512,
+var awsSupportedHashFuncs = []myhash.Hash{
+	myhash.SHA256,
+	myhash.SHA384,
+	myhash.SHA512,
 }
 
 // SignerVerifier is a signature.SignerVerifier that uses the AWS Key Management Service
@@ -49,7 +50,7 @@ type SignerVerifier struct {
 
 // LoadSignerVerifier generates signatures using the specified key object in AWS KMS and hash algorithm.
 //
-// It also can verify signatures locally using the public key. hashFunc must not be crypto.Hash(0).
+// It also can verify signatures locally using the public key. hashFunc must not be myhash.Hash(0).
 func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...func(*config.LoadOptions) error) (*SignerVerifier, error) {
 	a := &SignerVerifier{}
 
@@ -85,7 +86,7 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 		opt.ApplyDigest(&digest)
 	}
 
-	var signerOpts crypto.SignerOpts
+	var signerOpts myhash.SignerOpts
 	signerOpts, err = a.client.getHashFunc(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting fetching default hash function: %w", err)
@@ -156,7 +157,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 		return a.client.verify(ctx, sig, message, opts...)
 	}
 
-	var signerOpts crypto.SignerOpts
+	var signerOpts myhash.SignerOpts
 	signerOpts, err = a.client.getHashFunc(ctx)
 	if err != nil {
 		return fmt.Errorf("getting hash func: %w", err)
@@ -187,7 +188,7 @@ func (a *SignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypt
 
 type cryptoSignerWrapper struct {
 	ctx      context.Context
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	sv       *SignerVerifier
 	errFunc  func(error)
 }
@@ -200,7 +201,7 @@ func (c cryptoSignerWrapper) Public() crypto.PublicKey {
 	return pk
 }
 
-func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts myhash.SignerOpts) ([]byte, error) {
 	hashFunc := c.hashFunc
 	if opts != nil {
 		hashFunc = opts.HashFunc()
@@ -216,7 +217,7 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
-func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (myhash.Signer, myhash.SignerOpts, error) {
 	defaultHf, err := a.client.getHashFunc(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting fetching default hash function: %w", err)

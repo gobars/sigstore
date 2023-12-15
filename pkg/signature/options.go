@@ -17,10 +17,10 @@ package signature
 
 import (
 	"context"
-	"crypto"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 // RPCOption specifies options to be used when performing RPC
@@ -39,7 +39,7 @@ type PublicKeyOption interface {
 // MessageOption specifies options to be used when processing messages during signing or verification
 type MessageOption interface {
 	ApplyDigest(*[]byte)
-	ApplyCryptoSignerOpts(*crypto.SignerOpts)
+	ApplyCryptoSignerOpts(*myhash.SignerOpts)
 }
 
 // SignOption specifies options to be used when signing a message

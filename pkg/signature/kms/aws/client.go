@@ -25,6 +25,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
+	"github.com/jellydator/ttlcache/v3"
 	"io"
 	"net/http"
 	"os"
@@ -35,13 +37,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
-	"github.com/jellydator/ttlcache/v3"
-	"github.com/sigstore/sigstore/pkg/signature"
-	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/gobars/sigstore/pkg/signature"
+	sigkms "github.com/gobars/sigstore/pkg/signature/kms"
 )
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ myhash.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		return LoadSignerVerifier(ctx, keyResourceID)
 	})
 }
@@ -164,14 +165,14 @@ type cmk struct {
 	PublicKey   crypto.PublicKey
 }
 
-func (c *cmk) HashFunc() crypto.Hash {
+func (c *cmk) HashFunc() myhash.Hash {
 	switch c.KeyMetadata.SigningAlgorithms[0] {
 	case types.SigningAlgorithmSpecRsassaPssSha256, types.SigningAlgorithmSpecRsassaPkcs1V15Sha256, types.SigningAlgorithmSpecEcdsaSha256:
-		return crypto.SHA256
+		return myhash.SHA256
 	case types.SigningAlgorithmSpecRsassaPssSha384, types.SigningAlgorithmSpecRsassaPkcs1V15Sha384, types.SigningAlgorithmSpecEcdsaSha384:
-		return crypto.SHA384
+		return myhash.SHA384
 	case types.SigningAlgorithmSpecRsassaPssSha512, types.SigningAlgorithmSpecRsassaPkcs1V15Sha512, types.SigningAlgorithmSpecEcdsaSha512:
-		return crypto.SHA512
+		return myhash.SHA512
 	default:
 		return 0
 	}
@@ -216,7 +217,7 @@ func (a *awsClient) fetchCMK(ctx context.Context) (*cmk, error) {
 	return cmk, nil
 }
 
-func (a *awsClient) getHashFunc(ctx context.Context) (crypto.Hash, error) {
+func (a *awsClient) getHashFunc(ctx context.Context) (myhash.Hash, error) {
 	cmk, err := a.getCMK(ctx)
 	if err != nil {
 		return 0, err
@@ -321,7 +322,7 @@ func (a *awsClient) verifyRemotely(ctx context.Context, sig, digest []byte) erro
 	return nil
 }
 
-func (a *awsClient) sign(ctx context.Context, digest []byte, _ crypto.Hash) ([]byte, error) {
+func (a *awsClient) sign(ctx context.Context, digest []byte, _ myhash.Hash) ([]byte, error) {
 	cmk, err := a.getCMK(ctx)
 	if err != nil {
 		return nil, err

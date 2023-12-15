@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/tuf"
 )
 
 var (

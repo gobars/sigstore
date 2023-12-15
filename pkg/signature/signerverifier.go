@@ -21,10 +21,11 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"errors"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"os"
 	"path/filepath"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
 )
 
 // SignerVerifier creates and verifies digital signatures over a message using a specified key pair
@@ -38,7 +39,7 @@ type SignerVerifier interface {
 //
 // If privateKey is an RSA key, a RSAPKCS1v15SignerVerifier will be returned. If a
 // RSAPSSSignerVerifier is desired instead, use the LoadRSAPSSSignerVerifier() method directly.
-func LoadSignerVerifier(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (SignerVerifier, error) {
+func LoadSignerVerifier(privateKey crypto.PrivateKey, hashFunc myhash.Hash) (SignerVerifier, error) {
 	switch pk := privateKey.(type) {
 	case *rsa.PrivateKey:
 		return LoadRSAPKCS1v15SignerVerifier(pk, hashFunc)
@@ -56,7 +57,7 @@ func LoadSignerVerifier(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Sig
 // If publicKey is an RSA key, a RSAPKCS1v15SignerVerifier will be returned. If a
 // RSAPSSSignerVerifier is desired instead, use the LoadRSAPSSSignerVerifier() and
 // cryptoutils.UnmarshalPEMToPrivateKey() methods directly.
-func LoadSignerVerifierFromPEMFile(path string, hashFunc crypto.Hash, pf cryptoutils.PassFunc) (SignerVerifier, error) {
+func LoadSignerVerifierFromPEMFile(path string, hashFunc myhash.Hash, pf cryptoutils.PassFunc) (SignerVerifier, error) {
 	fileBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err

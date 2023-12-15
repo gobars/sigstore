@@ -17,21 +17,21 @@ package fake
 import (
 	"bytes"
 	"context"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"testing"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/signature/kms"
 )
 
 func TestFakeSigner(t *testing.T) {
 	msg := []byte{1, 2, 3, 4, 5}
 
-	signer, err := kms.Get(context.Background(), "fakekms://key", crypto.SHA256)
+	signer, err := kms.Get(context.Background(), "fakekms://key", myhash.SHA256)
 	if err != nil {
 		t.Fatalf("unexpected error getting signer: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestFakeSignerWithPrivateKey(t *testing.T) {
 		t.Fatalf("error generating ecdsa private key: %v", err)
 	}
 
-	signer, err := kms.Get(context.WithValue(context.TODO(), KmsCtxKey{}, priv), "fakekms://key", crypto.SHA256)
+	signer, err := kms.Get(context.WithValue(context.TODO(), KmsCtxKey{}, priv), "fakekms://key", myhash.SHA256)
 	if err != nil {
 		t.Fatalf("unexpected error getting signer: %v", err)
 	}

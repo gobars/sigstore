@@ -1,6 +1,6 @@
-module github.com/sigstore/sigstore/pkg/signature/kms/azure
+module github.com/gobars/sigstore/pkg/signature/kms/azure
 
-replace github.com/sigstore/sigstore => ../../../../
+replace github.com/gobars/sigstore => ../../../../
 
 go 1.20
 
@@ -11,7 +11,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.1
 	github.com/google/go-cmp v0.6.0
 	github.com/jellydator/ttlcache/v3 v3.1.0
-	github.com/sigstore/sigstore v1.6.4
+	github.com/gobars/sigstore v1.6.4
 	golang.org/x/crypto v0.16.0
 )
 

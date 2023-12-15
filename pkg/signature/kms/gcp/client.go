@@ -23,6 +23,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"hash/crc32"
 	"io"
 	"log"
@@ -34,15 +35,15 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/gobars/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/signature"
+	sigkms "github.com/gobars/sigstore/pkg/signature/kms"
+	"github.com/gobars/sigstore/pkg/signature/options"
 	"github.com/jellydator/ttlcache/v3"
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/signature"
-	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
-	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ myhash.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		return LoadSignerVerifier(ctx, keyResourceID)
 	})
 }
@@ -150,7 +151,7 @@ func parseReference(resourceID string) (projectID, locationID, keyRing, keyName,
 type cryptoKeyVersion struct {
 	CryptoKeyVersion *kmspb.CryptoKeyVersion
 	Verifier         signature.Verifier
-	HashFunc         crypto.Hash
+	HashFunc         myhash.Hash
 }
 
 // use a consistent key for cache lookups
@@ -209,27 +210,27 @@ func (g *gcpClient) keyVersionName(ctx context.Context) (*cryptoKeyVersion, erro
 	// as well as using the in memory Verifier to perform the verify operations.
 	switch kv.Algorithm {
 	case kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
-		crv.Verifier, err = signature.LoadECDSAVerifier(pubKey.(*ecdsa.PublicKey), crypto.SHA256)
-		crv.HashFunc = crypto.SHA256
+		crv.Verifier, err = signature.LoadECDSAVerifier(pubKey.(*ecdsa.PublicKey), myhash.SHA256)
+		crv.HashFunc = myhash.SHA256
 	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
-		crv.Verifier, err = signature.LoadECDSAVerifier(pubKey.(*ecdsa.PublicKey), crypto.SHA384)
-		crv.HashFunc = crypto.SHA384
+		crv.Verifier, err = signature.LoadECDSAVerifier(pubKey.(*ecdsa.PublicKey), myhash.SHA384)
+		crv.HashFunc = myhash.SHA384
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256:
-		crv.Verifier, err = signature.LoadRSAPKCS1v15Verifier(pubKey.(*rsa.PublicKey), crypto.SHA256)
-		crv.HashFunc = crypto.SHA256
+		crv.Verifier, err = signature.LoadRSAPKCS1v15Verifier(pubKey.(*rsa.PublicKey), myhash.SHA256)
+		crv.HashFunc = myhash.SHA256
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512:
-		crv.Verifier, err = signature.LoadRSAPKCS1v15Verifier(pubKey.(*rsa.PublicKey), crypto.SHA512)
-		crv.HashFunc = crypto.SHA512
+		crv.Verifier, err = signature.LoadRSAPKCS1v15Verifier(pubKey.(*rsa.PublicKey), myhash.SHA512)
+		crv.HashFunc = myhash.SHA512
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256:
-		crv.Verifier, err = signature.LoadRSAPSSVerifier(pubKey.(*rsa.PublicKey), crypto.SHA256, nil)
-		crv.HashFunc = crypto.SHA256
+		crv.Verifier, err = signature.LoadRSAPSSVerifier(pubKey.(*rsa.PublicKey), myhash.SHA256, nil)
+		crv.HashFunc = myhash.SHA256
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
-		crv.Verifier, err = signature.LoadRSAPSSVerifier(pubKey.(*rsa.PublicKey), crypto.SHA512, nil)
-		crv.HashFunc = crypto.SHA512
+		crv.Verifier, err = signature.LoadRSAPSSVerifier(pubKey.(*rsa.PublicKey), myhash.SHA512, nil)
+		crv.HashFunc = myhash.SHA512
 	default:
 		return nil, errors.New("unknown algorithm specified by KMS")
 	}
@@ -250,7 +251,7 @@ func (g *gcpClient) fetchPublicKey(ctx context.Context, name string) (crypto.Pub
 	return cryptoutils.UnmarshalPEMToPublicKey([]byte(pk.GetPem()))
 }
 
-func (g *gcpClient) getHashFunc() (crypto.Hash, error) {
+func (g *gcpClient) getHashFunc() (myhash.Hash, error) {
 	ckv, err := g.getCKV()
 	if err != nil {
 		return 0, err
@@ -290,7 +291,7 @@ func (g *gcpClient) getCKV() (*cryptoKeyVersion, error) {
 	return nil, lerr
 }
 
-func (g *gcpClient) sign(ctx context.Context, digest []byte, alg crypto.Hash, crc uint32) ([]byte, error) {
+func (g *gcpClient) sign(ctx context.Context, digest []byte, alg myhash.Hash, crc uint32) ([]byte, error) {
 	ckv, err := g.getCKV()
 	if err != nil {
 		return nil, err
@@ -306,15 +307,15 @@ func (g *gcpClient) sign(ctx context.Context, digest []byte, alg crypto.Hash, cr
 	}
 
 	switch alg {
-	case crypto.SHA256:
+	case myhash.SHA256:
 		gcpSignReq.Digest.Digest = &kmspb.Digest_Sha256{
 			Sha256: digest,
 		}
-	case crypto.SHA384:
+	case myhash.SHA384:
 		gcpSignReq.Digest.Digest = &kmspb.Digest_Sha384{
 			Sha384: digest,
 		}
-	case crypto.SHA512:
+	case myhash.SHA512:
 		gcpSignReq.Digest.Digest = &kmspb.Digest_Sha512{
 			Sha512: digest,
 		}

@@ -16,13 +16,13 @@
 package signature
 
 import (
-	"crypto"
 	"crypto/rsa"
 	"encoding/base64"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"strings"
 	"testing"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
 )
 
 // keys defined in rsapss_test.go
@@ -32,7 +32,7 @@ func TestRSAPKCS1v15SignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling private key: %v", err)
 	}
-	sv, err := LoadRSAPKCS1v15SignerVerifier(privateKey.(*rsa.PrivateKey), crypto.SHA256)
+	sv, err := LoadRSAPKCS1v15SignerVerifier(privateKey.(*rsa.PrivateKey), myhash.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}
@@ -40,18 +40,18 @@ func TestRSAPKCS1v15SignerVerifier(t *testing.T) {
 	message := []byte("sign me")
 	// created with openssl dgst -sign privKey.pem -sha256
 	sig, _ := base64.StdEncoding.DecodeString("AMpSInspjqXdigO0vACd7KMilwLMnrHqnSitnyY0dNiIQ912I2wEme3sMqAMeWnsJ26BxObqV2iMZiggnmeMwd92+6dWpfc2is7m3IbdrUmwKG8y4WDegXEq+EWOy6qsPoqXFPgn1500MFkwrMASP035Gu6wTPmc92zimKozT91j2MNBSONWlcrP89DYBpSVnX+AUs4CKJUppRH/AeyKtftm8GC2TOGrG83U5JqDNegbp5Sji3ViAbUtbiHfob4o1VDGqlyCLgaB0sthekI0XFucWHJj9xRBFazcSBA7Bw1I+T08SqsjfP9Gz43VkItnZbwXMWdSRV81vEK0UuX/rA==")
-	testingSigner(t, sv, "rsa", crypto.SHA256, message)
-	testingVerifier(t, sv, "rsa", crypto.SHA256, sig, message)
+	testingSigner(t, sv, "rsa", myhash.SHA256, message)
+	testingVerifier(t, sv, "rsa", myhash.SHA256, sig, message)
 
 	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(pubKey))
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	v, err := LoadRSAPKCS1v15Verifier(publicKey.(*rsa.PublicKey), crypto.SHA256)
+	v, err := LoadRSAPKCS1v15Verifier(publicKey.(*rsa.PublicKey), myhash.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating verifier: %v", err)
 	}
-	testingVerifier(t, v, "rsa", crypto.SHA256, sig, message)
+	testingVerifier(t, v, "rsa", myhash.SHA256, sig, message)
 }
 
 func TestRSAPKCS1v15SignerVerifierUnsupportedHash(t *testing.T) {
@@ -59,7 +59,7 @@ func TestRSAPKCS1v15SignerVerifierUnsupportedHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	_, err = LoadRSAPKCS1v15Verifier(publicKey.(*rsa.PublicKey), crypto.SHA1)
+	_, err = LoadRSAPKCS1v15Verifier(publicKey.(*rsa.PublicKey), myhash.SHA1)
 	if !strings.Contains(err.Error(), "invalid hash function specified") {
 		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
 	}

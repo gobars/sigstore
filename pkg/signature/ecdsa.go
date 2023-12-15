@@ -22,38 +22,39 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 // checked on LoadSigner, LoadVerifier and SignMessage
-var ecdsaSupportedHashFuncs = []crypto.Hash{
-	crypto.SHA256,
-	crypto.SHA512,
-	crypto.SHA384,
-	crypto.SHA224,
+var ecdsaSupportedHashFuncs = []myhash.Hash{
+	myhash.SHA256,
+	myhash.SHA512,
+	myhash.SHA384,
+	myhash.SHA224,
 }
 
 // checked on VerifySignature. Supports SHA1 verification.
-var ecdsaSupportedVerifyHashFuncs = []crypto.Hash{
-	crypto.SHA256,
-	crypto.SHA512,
-	crypto.SHA384,
-	crypto.SHA224,
-	crypto.SHA1,
+var ecdsaSupportedVerifyHashFuncs = []myhash.Hash{
+	myhash.SHA256,
+	myhash.SHA512,
+	myhash.SHA384,
+	myhash.SHA224,
+	myhash.SHA1,
 }
 
 // ECDSASigner is a signature.Signer that uses an Elliptic Curve DSA algorithm
 type ECDSASigner struct {
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	priv     *ecdsa.PrivateKey
 }
 
 // LoadECDSASigner calculates signatures using the specified private key and hash algorithm.
 //
 // hf must not be crypto.Hash(0).
-func LoadECDSASigner(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASigner, error) {
+func LoadECDSASigner(priv *ecdsa.PrivateKey, hf myhash.Hash) (*ECDSASigner, error) {
 	if priv == nil {
 		return nil, errors.New("invalid ECDSA private key specified")
 	}
@@ -114,7 +115,7 @@ func (e ECDSASigner) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
 //
 // If opts are specified, the hash function in opts.Hash should be the one used to compute
 // digest. If opts are not specified, the value provided when the signer was created will be used instead.
-func (e ECDSASigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (e ECDSASigner) Sign(rand io.Reader, digest []byte, opts myhash.SignerOpts) ([]byte, error) {
 	ecdsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
 		ecdsaOpts = append(ecdsaOpts, options.WithCryptoSignerOpts(opts))
@@ -126,14 +127,14 @@ func (e ECDSASigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts)
 // ECDSAVerifier is a signature.Verifier that uses an Elliptic Curve DSA algorithm
 type ECDSAVerifier struct {
 	publicKey *ecdsa.PublicKey
-	hashFunc  crypto.Hash
+	hashFunc  myhash.Hash
 }
 
 // LoadECDSAVerifier returns a Verifier that verifies signatures using the specified
 // ECDSA public key and hash algorithm.
 //
 // hf must not be crypto.Hash(0).
-func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc crypto.Hash) (*ECDSAVerifier, error) {
+func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc myhash.Hash) (*ECDSAVerifier, error) {
 	if pub == nil {
 		return nil, errors.New("invalid ECDSA public key specified")
 	}
@@ -205,7 +206,7 @@ type ECDSASignerVerifier struct {
 
 // LoadECDSASignerVerifier creates a combined signer and verifier. This is a convenience object
 // that simply wraps an instance of ECDSASigner and ECDSAVerifier.
-func LoadECDSASignerVerifier(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASignerVerifier, error) {
+func LoadECDSASignerVerifier(priv *ecdsa.PrivateKey, hf myhash.Hash) (*ECDSASignerVerifier, error) {
 	signer, err := LoadECDSASigner(priv, hf)
 	if err != nil {
 		return nil, fmt.Errorf("initializing signer: %w", err)
@@ -225,13 +226,13 @@ func LoadECDSASignerVerifier(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASign
 //
 // This creates a new ECDSA key using the P-256 curve and uses the SHA256 hashing algorithm.
 func NewDefaultECDSASignerVerifier() (*ECDSASignerVerifier, *ecdsa.PrivateKey, error) {
-	return NewECDSASignerVerifier(elliptic.P256(), rand.Reader, crypto.SHA256)
+	return NewECDSASignerVerifier(elliptic.P256(), rand.Reader, myhash.SHA256)
 }
 
 // NewECDSASignerVerifier creates a combined signer and verifier using ECDSA.
 //
 // This creates a new ECDSA key using the specified elliptic curve, entropy source, and hashing function.
-func NewECDSASignerVerifier(curve elliptic.Curve, rand io.Reader, hashFunc crypto.Hash) (*ECDSASignerVerifier, *ecdsa.PrivateKey, error) {
+func NewECDSASignerVerifier(curve elliptic.Curve, rand io.Reader, hashFunc myhash.Hash) (*ECDSASignerVerifier, *ecdsa.PrivateKey, error) {
 	priv, err := ecdsa.GenerateKey(curve, rand)
 	if err != nil {
 		return nil, nil, err

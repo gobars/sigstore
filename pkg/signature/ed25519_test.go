@@ -16,12 +16,12 @@
 package signature
 
 import (
-	"crypto"
 	"crypto/ed25519"
 	"encoding/base64"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"testing"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
 )
 
 // Generated with:
@@ -53,8 +53,8 @@ func TestED25519SignerVerifier(t *testing.T) {
 
 	message := []byte("sign me")
 	sig, _ := base64.StdEncoding.DecodeString("cnafwd8DKq2nQ564eN66ckYV8anVFGFi5vaYiQg2aal7ej/J0/OE0PPdKHLHe9wdzWRMFy5MpurRD/2cGXGLBQ==")
-	testingSigner(t, sv, "ed25519", crypto.SHA256, message)
-	testingVerifier(t, sv, "ed25519", crypto.SHA256, sig, message)
+	testingSigner(t, sv, "ed25519", myhash.SHA256, message)
+	testingVerifier(t, sv, "ed25519", myhash.SHA256, sig, message)
 	pub, err := sv.PublicKey()
 	if err != nil {
 		t.Fatalf("unexpected error from PublicKey(): %v", err)
@@ -79,7 +79,7 @@ func TestED25519Verifier(t *testing.T) {
 
 	message := []byte("sign me")
 	sig, _ := base64.StdEncoding.DecodeString("cnafwd8DKq2nQ564eN66ckYV8anVFGFi5vaYiQg2aal7ej/J0/OE0PPdKHLHe9wdzWRMFy5MpurRD/2cGXGLBQ==")
-	testingVerifier(t, v, "ed25519", crypto.SHA256, sig, message)
+	testingVerifier(t, v, "ed25519", myhash.SHA256, sig, message)
 	pub, err := v.PublicKey()
 	if err != nil {
 		t.Fatalf("unexpected error from PublicKey(): %v", err)

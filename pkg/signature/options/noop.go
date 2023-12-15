@@ -17,7 +17,7 @@ package options
 
 import (
 	"context"
-	"crypto"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 )
 
@@ -28,7 +28,7 @@ type NoOpOptionImpl struct{}
 func (NoOpOptionImpl) ApplyContext(_ *context.Context) {}
 
 // ApplyCryptoSignerOpts is a no-op required to fully implement the requisite interfaces
-func (NoOpOptionImpl) ApplyCryptoSignerOpts(_ *crypto.SignerOpts) {}
+func (NoOpOptionImpl) ApplyCryptoSignerOpts(_ *myhash.SignerOpts) {}
 
 // ApplyDigest is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyDigest(_ *[]byte) {}

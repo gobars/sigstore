@@ -25,9 +25,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/signature"
+	"github.com/gobars/sigstore/pkg/signature/options"
 	"github.com/theupdateframework/go-tuf"
 )
 

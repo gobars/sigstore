@@ -20,11 +20,12 @@ import (
 	"crypto"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 	"strconv"
 
-	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 // Taken from https://www.vaultproject.io/api/secret/transit
@@ -49,17 +50,17 @@ var hvSupportedAlgorithms = []string{
 	AlgorithmRSA4096,
 }
 
-var hvSupportedHashFuncs = []crypto.Hash{
-	crypto.SHA224,
-	crypto.SHA256,
-	crypto.SHA384,
-	crypto.SHA512,
-	crypto.Hash(0),
+var hvSupportedHashFuncs = []myhash.Hash{
+	myhash.SHA224,
+	myhash.SHA256,
+	myhash.SHA384,
+	myhash.SHA512,
+	myhash.Hash(0),
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using Hashicorp Vault KMS service
 type SignerVerifier struct {
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	client   *hashivaultClient
 }
 
@@ -67,7 +68,7 @@ type SignerVerifier struct {
 //
 // It also can verify signatures (via a remote vall to the Vault instance). hashFunc should be
 // set to crypto.Hash(0) if the key referred to by referenceStr is an ED25519 signing key.
-func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signature.RPCOption) (*SignerVerifier, error) {
+func LoadSignerVerifier(referenceStr string, hashFunc myhash.Hash, opts ...signature.RPCOption) (*SignerVerifier, error) {
 	h := &SignerVerifier{}
 	ctx := context.Background()
 	rpcAuth := options.RPCAuth{}
@@ -99,7 +100,7 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signa
 	}
 
 	switch hashFunc {
-	case 0, crypto.SHA224, crypto.SHA256, crypto.SHA384, crypto.SHA512:
+	case 0, myhash.SHA224, myhash.SHA256, myhash.SHA384, myhash.SHA512:
 		h.hashFunc = hashFunc
 	default:
 		return nil, errors.New("hash function not supported by Hashivault")
@@ -119,7 +120,7 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signa
 // All other options are ignored if specified.
 func (h SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	var digest []byte
-	var signerOpts crypto.SignerOpts = h.hashFunc
+	var signerOpts myhash.SignerOpts = h.hashFunc
 
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
@@ -155,7 +156,7 @@ func (h SignerVerifier) PublicKey(_ ...signature.PublicKeyOption) (crypto.Public
 // All other options are ignored if specified.
 func (h SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signature.VerifyOption) error {
 	var digest []byte
-	var signerOpts crypto.SignerOpts = h.hashFunc
+	var signerOpts myhash.SignerOpts = h.hashFunc
 
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
@@ -182,7 +183,7 @@ func (h SignerVerifier) CreateKey(_ context.Context, algorithm string) (crypto.P
 
 type cryptoSignerWrapper struct {
 	ctx      context.Context
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	sv       *SignerVerifier
 	errFunc  func(error)
 }
@@ -195,7 +196,7 @@ func (c cryptoSignerWrapper) Public() crypto.PublicKey {
 	return pk
 }
 
-func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts myhash.SignerOpts) ([]byte, error) {
 	hashFunc := c.hashFunc
 	if opts != nil {
 		hashFunc = opts.HashFunc()
@@ -211,7 +212,7 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
-func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (myhash.Signer, myhash.SignerOpts, error) {
 	csw := &cryptoSignerWrapper{
 		ctx:      ctx,
 		sv:       h,

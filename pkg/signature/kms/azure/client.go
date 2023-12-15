@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"net/http"
 	"os"
 	"regexp"
@@ -41,12 +42,12 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
-	"github.com/sigstore/sigstore/pkg/signature"
-	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/gobars/sigstore/pkg/signature"
+	sigkms "github.com/gobars/sigstore/pkg/signature/kms"
 )
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ myhash.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		return LoadSignerVerifier(ctx, keyResourceID)
 	})
 }
@@ -370,7 +371,7 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 	return a.public(ctx)
 }
 
-func (a *azureVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash, azkeys.SignatureAlgorithm, error) {
+func (a *azureVaultClient) getKeyVaultHashFunc(ctx context.Context) (myhash.Hash, azkeys.SignatureAlgorithm, error) {
 	publicKey, err := a.public(ctx)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to get public key: %w", err)
@@ -379,22 +380,22 @@ func (a *azureVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash
 	case *ecdsa.PublicKey:
 		switch keyImpl.Curve {
 		case elliptic.P256():
-			return crypto.SHA256, azkeys.SignatureAlgorithmES256, nil
+			return myhash.SHA256, azkeys.SignatureAlgorithmES256, nil
 		case elliptic.P384():
-			return crypto.SHA384, azkeys.SignatureAlgorithmES384, nil
+			return myhash.SHA384, azkeys.SignatureAlgorithmES384, nil
 		case elliptic.P521():
-			return crypto.SHA512, azkeys.SignatureAlgorithmES512, nil
+			return myhash.SHA512, azkeys.SignatureAlgorithmES512, nil
 		default:
 			return 0, "", fmt.Errorf("unsupported key size: %s", keyImpl.Params().Name)
 		}
 	case *rsa.PublicKey:
 		switch keyImpl.Size() {
 		case 256:
-			return crypto.SHA256, azkeys.SignatureAlgorithmRS256, nil
+			return myhash.SHA256, azkeys.SignatureAlgorithmRS256, nil
 		case 384:
-			return crypto.SHA384, azkeys.SignatureAlgorithmRS384, nil
+			return myhash.SHA384, azkeys.SignatureAlgorithmRS384, nil
 		case 512:
-			return crypto.SHA512, azkeys.SignatureAlgorithmRS512, nil
+			return myhash.SHA512, azkeys.SignatureAlgorithmRS512, nil
 		default:
 			return 0, "", fmt.Errorf("unsupported key size: %d", keyImpl.Size())
 		}

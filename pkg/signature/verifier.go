@@ -21,11 +21,12 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"errors"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
 )
 
 // Verifier verifies the digital signature using a specified public key
@@ -39,7 +40,7 @@ type Verifier interface {
 //
 // If publicKey is an RSA key, a RSAPKCS1v15Verifier will be returned. If a
 // RSAPSSVerifier is desired instead, use the LoadRSAPSSVerifier() method directly.
-func LoadVerifier(publicKey crypto.PublicKey, hashFunc crypto.Hash) (Verifier, error) {
+func LoadVerifier(publicKey crypto.PublicKey, hashFunc myhash.Hash) (Verifier, error) {
 	switch pk := publicKey.(type) {
 	case *rsa.PublicKey:
 		return LoadRSAPKCS1v15Verifier(pk, hashFunc)
@@ -64,7 +65,7 @@ func LoadUnsafeVerifier(publicKey crypto.PublicKey) (Verifier, error) {
 		}
 		return &RSAPKCS1v15Verifier{
 			publicKey: pk,
-			hashFunc:  crypto.SHA1,
+			hashFunc:  myhash.SHA1,
 		}, nil
 	case *ecdsa.PublicKey:
 		if pk == nil {
@@ -72,7 +73,7 @@ func LoadUnsafeVerifier(publicKey crypto.PublicKey) (Verifier, error) {
 		}
 		return &ECDSAVerifier{
 			publicKey: pk,
-			hashFunc:  crypto.SHA1,
+			hashFunc:  myhash.SHA1,
 		}, nil
 	case ed25519.PublicKey:
 		return LoadED25519Verifier(pk)
@@ -85,7 +86,7 @@ func LoadUnsafeVerifier(publicKey crypto.PublicKey) (Verifier, error) {
 //
 // If the publickey is an RSA key, a RSAPKCS1v15Verifier will be returned. If a
 // RSAPSSVerifier is desired instead, use the LoadRSAPSSVerifier() and cryptoutils.UnmarshalPEMToPublicKey() methods directly.
-func LoadVerifierFromPEMFile(path string, hashFunc crypto.Hash) (Verifier, error) {
+func LoadVerifierFromPEMFile(path string, hashFunc myhash.Hash) (Verifier, error) {
 	fileBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err

@@ -21,21 +21,22 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 // RSAPKCS1v15Signer is a signature.Signer that uses the RSA PKCS1v15 algorithm
 type RSAPKCS1v15Signer struct {
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	priv     *rsa.PrivateKey
 }
 
 // LoadRSAPKCS1v15Signer calculates signatures using the specified private key and hash algorithm.
 //
 // hf must be either SHA256, SHA388, or SHA512.
-func LoadRSAPKCS1v15Signer(priv *rsa.PrivateKey, hf crypto.Hash) (*RSAPKCS1v15Signer, error) {
+func LoadRSAPKCS1v15Signer(priv *rsa.PrivateKey, hf myhash.Hash) (*RSAPKCS1v15Signer, error) {
 	if priv == nil {
 		return nil, errors.New("invalid RSA private key specified")
 	}
@@ -71,7 +72,7 @@ func (r RSAPKCS1v15Signer) SignMessage(message io.Reader, opts ...SignOption) ([
 
 	rand := selectRandFromOpts(opts...)
 
-	return rsa.SignPKCS1v15(rand, r.priv, hf, digest)
+	return rsa.SignPKCS1v15(rand, r.priv, crypto.Hash(hf), digest)
 }
 
 // Public returns the public key that can be used to verify signatures created by
@@ -99,7 +100,7 @@ func (r RSAPKCS1v15Signer) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, er
 // If opts are specified, they should specify the hash function used to compute digest. If opts are
 // not specified, this function assumes the hash function provided when the signer was created was
 // used to create the value specified in digest.
-func (r RSAPKCS1v15Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (r RSAPKCS1v15Signer) Sign(rand io.Reader, digest []byte, opts myhash.SignerOpts) ([]byte, error) {
 	rsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
 		rsaOpts = append(rsaOpts, options.WithCryptoSignerOpts(opts))
@@ -111,14 +112,14 @@ func (r RSAPKCS1v15Signer) Sign(rand io.Reader, digest []byte, opts crypto.Signe
 // RSAPKCS1v15Verifier is a signature.Verifier that uses the RSA PKCS1v15 algorithm
 type RSAPKCS1v15Verifier struct {
 	publicKey *rsa.PublicKey
-	hashFunc  crypto.Hash
+	hashFunc  myhash.Hash
 }
 
 // LoadRSAPKCS1v15Verifier returns a Verifier that verifies signatures using the specified
 // RSA public key and hash algorithm.
 //
 // hf must be either SHA256, SHA388, or SHA512.
-func LoadRSAPKCS1v15Verifier(pub *rsa.PublicKey, hashFunc crypto.Hash) (*RSAPKCS1v15Verifier, error) {
+func LoadRSAPKCS1v15Verifier(pub *rsa.PublicKey, hashFunc myhash.Hash) (*RSAPKCS1v15Verifier, error) {
 	if pub == nil {
 		return nil, errors.New("invalid RSA public key specified")
 	}
@@ -168,7 +169,7 @@ func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts 
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
-	return rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
+	return rsa.VerifyPKCS1v15(r.publicKey, crypto.Hash(hf), digest, sigBytes)
 }
 
 // RSAPKCS1v15SignerVerifier is a signature.SignerVerifier that uses the RSA PKCS1v15 algorithm
@@ -179,7 +180,7 @@ type RSAPKCS1v15SignerVerifier struct {
 
 // LoadRSAPKCS1v15SignerVerifier creates a combined signer and verifier. This is a convenience object
 // that simply wraps an instance of RSAPKCS1v15Signer and RSAPKCS1v15Verifier.
-func LoadRSAPKCS1v15SignerVerifier(priv *rsa.PrivateKey, hf crypto.Hash) (*RSAPKCS1v15SignerVerifier, error) {
+func LoadRSAPKCS1v15SignerVerifier(priv *rsa.PrivateKey, hf myhash.Hash) (*RSAPKCS1v15SignerVerifier, error) {
 	signer, err := LoadRSAPKCS1v15Signer(priv, hf)
 	if err != nil {
 		return nil, fmt.Errorf("initializing signer: %w", err)
@@ -198,12 +199,12 @@ func LoadRSAPKCS1v15SignerVerifier(priv *rsa.PrivateKey, hf crypto.Hash) (*RSAPK
 // NewDefaultRSAPKCS1v15SignerVerifier creates a combined signer and verifier using RSA PKCS1v15.
 // This creates a new RSA key of 2048 bits and uses the SHA256 hashing algorithm.
 func NewDefaultRSAPKCS1v15SignerVerifier() (*RSAPKCS1v15SignerVerifier, *rsa.PrivateKey, error) {
-	return NewRSAPKCS1v15SignerVerifier(rand.Reader, 2048, crypto.SHA256)
+	return NewRSAPKCS1v15SignerVerifier(rand.Reader, 2048, myhash.SHA256)
 }
 
 // NewRSAPKCS1v15SignerVerifier creates a combined signer and verifier using RSA PKCS1v15.
 // This creates a new RSA key of the specified length of bits, entropy source, and hash function.
-func NewRSAPKCS1v15SignerVerifier(rand io.Reader, bits int, hashFunc crypto.Hash) (*RSAPKCS1v15SignerVerifier, *rsa.PrivateKey, error) {
+func NewRSAPKCS1v15SignerVerifier(rand io.Reader, bits int, hashFunc myhash.Hash) (*RSAPKCS1v15SignerVerifier, *rsa.PrivateKey, error) {
 	priv, err := rsa.GenerateKey(rand, bits)
 	if err != nil {
 		return nil, nil, err

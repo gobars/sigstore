@@ -17,18 +17,18 @@ package signature
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"math/big"
 	"strings"
 	"testing"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
 )
 
 // Generated with:
@@ -52,7 +52,7 @@ func TestECDSASignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling private key: %v", err)
 	}
-	sv, err := LoadECDSASignerVerifier(privateKey.(*ecdsa.PrivateKey), crypto.SHA256)
+	sv, err := LoadECDSASignerVerifier(privateKey.(*ecdsa.PrivateKey), myhash.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}
@@ -60,18 +60,18 @@ func TestECDSASignerVerifier(t *testing.T) {
 	message := []byte("sign me")
 	// created with openssl dgst -sign privKey.pem -sha256
 	sig, _ := base64.StdEncoding.DecodeString("MEQCIGvnAsUT6P4PoJoKxP331ZFU2LfzxnuvulK14Rl3zNKIAiBJCSA7NdmAZkLNqxmWnbBp8ntJYVZmUR0Tbmv6ftS8ww==")
-	testingSigner(t, sv, "ecdsa", crypto.SHA256, message)
-	testingVerifier(t, sv, "ecdsa", crypto.SHA256, sig, message)
+	testingSigner(t, sv, "ecdsa", myhash.SHA256, message)
+	testingVerifier(t, sv, "ecdsa", myhash.SHA256, sig, message)
 
 	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ecdsaPub))
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	v, err := LoadECDSAVerifier(publicKey.(*ecdsa.PublicKey), crypto.SHA256)
+	v, err := LoadECDSAVerifier(publicKey.(*ecdsa.PublicKey), myhash.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating verifier: %v", err)
 	}
-	testingVerifier(t, v, "ecdsa", crypto.SHA256, sig, message)
+	testingVerifier(t, v, "ecdsa", myhash.SHA256, sig, message)
 }
 
 func TestECDSASignerVerifierUnsupportedHash(t *testing.T) {
@@ -84,12 +84,12 @@ func TestECDSASignerVerifierUnsupportedHash(t *testing.T) {
 		t.Errorf("unexpected error unmarshalling public key key: %v", err)
 	}
 
-	_, err = LoadECDSASigner(privateKey.(*ecdsa.PrivateKey), crypto.SHA1)
+	_, err = LoadECDSASigner(privateKey.(*ecdsa.PrivateKey), myhash.SHA1)
 	if !strings.Contains(err.Error(), "invalid hash function specified") {
 		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
 	}
 
-	_, err = LoadECDSAVerifier(publicKey.(*ecdsa.PublicKey), crypto.SHA1)
+	_, err = LoadECDSAVerifier(publicKey.(*ecdsa.PublicKey), myhash.SHA1)
 	if !strings.Contains(err.Error(), "invalid hash function specified") {
 		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
 	}
@@ -97,7 +97,7 @@ func TestECDSASignerVerifierUnsupportedHash(t *testing.T) {
 
 func TestECDSALoadVerifierWithoutKey(t *testing.T) {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	v, err := LoadECDSAVerifier(&key.PublicKey, crypto.SHA256)
+	v, err := LoadECDSAVerifier(&key.PublicKey, myhash.SHA256)
 	if err != nil {
 		t.Fatalf("error creating verifier: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestECDSALoadVerifierInvalidCurve(t *testing.T) {
 	x.D = z
 	x.Curve = elliptic.P256()
 
-	verifier, err := LoadECDSAVerifier(&x.PublicKey, crypto.SHA256)
+	verifier, err := LoadECDSAVerifier(&x.PublicKey, myhash.SHA256)
 	if err != nil {
 		t.Fatalf("unexpected error loading verifier: %v", err)
 	}

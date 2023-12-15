@@ -1,6 +1,6 @@
-module github.com/sigstore/sigstore/pkg/signature/kms/hashivault
+module github.com/gobars/sigstore/pkg/signature/kms/hashivault
 
-replace github.com/sigstore/sigstore => ../../../../
+replace github.com/gobars/sigstore => ../../../../
 
 go 1.20
 
@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/jellydator/ttlcache/v3 v3.1.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/sigstore/sigstore v1.6.4
+	github.com/gobars/sigstore v1.6.4
 	github.com/stretchr/testify v1.8.4
 )
 

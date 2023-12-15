@@ -20,10 +20,23 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 )
 
-func isSupportedAlg(alg crypto.Hash, supportedAlgs []crypto.Hash) bool {
+func isSupportedAlg(alg myhash.Hash, supportedAlgs []myhash.Hash) bool {
+	if supportedAlgs == nil {
+		return true
+	}
+	for _, supportedAlg := range supportedAlgs {
+		if alg == supportedAlg {
+			return true
+		}
+	}
+	return false
+}
+
+func isSupportedCryptoAlg(alg crypto.Hash, supportedAlgs []crypto.Hash) bool {
 	if supportedAlgs == nil {
 		return true
 	}
@@ -41,18 +54,18 @@ func isSupportedAlg(alg crypto.Hash, supportedAlgs []crypto.Hash) bool {
 // digest value will be returned without any further computation
 // - if a hash function is given using WithCryptoSignerOpts(opts) as a SignOption, it will be used (if it is in the supported list)
 // - otherwise defaultHashFunc will be used (if it is in the supported list)
-func ComputeDigestForSigning(rawMessage io.Reader, defaultHashFunc crypto.Hash, supportedHashFuncs []crypto.Hash, opts ...SignOption) (digest []byte, hashedWith crypto.Hash, err error) {
-	var cryptoSignerOpts crypto.SignerOpts = defaultHashFunc
+func ComputeDigestForSigning(rawMessage io.Reader, defaultHashFunc myhash.Hash, supportedHashFuncs []myhash.Hash, opts ...SignOption) (digest []byte, hashedWith myhash.Hash, err error) {
+	var cryptoSignerOpts myhash.SignerOpts = defaultHashFunc
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
 		opt.ApplyCryptoSignerOpts(&cryptoSignerOpts)
 	}
 	hashedWith = cryptoSignerOpts.HashFunc()
 	if !isSupportedAlg(hashedWith, supportedHashFuncs) {
-		return nil, crypto.Hash(0), fmt.Errorf("unsupported hash algorithm: %q not in %v", hashedWith.String(), supportedHashFuncs)
+		return nil, myhash.Hash(0), fmt.Errorf("unsupported hash algorithm: %q not in %v", hashedWith.String(), supportedHashFuncs)
 	}
 	if len(digest) > 0 {
-		if hashedWith != crypto.Hash(0) && len(digest) != hashedWith.Size() {
+		if hashedWith != myhash.Hash(0) && len(digest) != hashedWith.Size() {
 			err = errors.New("unexpected length of digest for hash function specified")
 		}
 		return
@@ -67,18 +80,18 @@ func ComputeDigestForSigning(rawMessage io.Reader, defaultHashFunc crypto.Hash, 
 // digest value will be returned without any further computation
 // - if a hash function is given using WithCryptoSignerOpts(opts) as a SignOption, it will be used (if it is in the supported list)
 // - otherwise defaultHashFunc will be used (if it is in the supported list)
-func ComputeDigestForVerifying(rawMessage io.Reader, defaultHashFunc crypto.Hash, supportedHashFuncs []crypto.Hash, opts ...VerifyOption) (digest []byte, hashedWith crypto.Hash, err error) {
-	var cryptoSignerOpts crypto.SignerOpts = defaultHashFunc
+func ComputeDigestForVerifying(rawMessage io.Reader, defaultHashFunc myhash.Hash, supportedHashFuncs []myhash.Hash, opts ...VerifyOption) (digest []byte, hashedWith myhash.Hash, err error) {
+	var cryptoSignerOpts myhash.SignerOpts = defaultHashFunc
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
 		opt.ApplyCryptoSignerOpts(&cryptoSignerOpts)
 	}
 	hashedWith = cryptoSignerOpts.HashFunc()
 	if !isSupportedAlg(hashedWith, supportedHashFuncs) {
-		return nil, crypto.Hash(0), fmt.Errorf("unsupported hash algorithm: %q not in %v", hashedWith.String(), supportedHashFuncs)
+		return nil, myhash.Hash(0), fmt.Errorf("unsupported hash algorithm: %q not in %v", hashedWith.String(), supportedHashFuncs)
 	}
 	if len(digest) > 0 {
-		if hashedWith != crypto.Hash(0) && len(digest) != hashedWith.Size() {
+		if hashedWith != myhash.Hash(0) && len(digest) != hashedWith.Size() {
 			err = errors.New("unexpected length of digest for hash function specified")
 		}
 		return
@@ -87,11 +100,11 @@ func ComputeDigestForVerifying(rawMessage io.Reader, defaultHashFunc crypto.Hash
 	return
 }
 
-func hashMessage(rawMessage io.Reader, hashFunc crypto.Hash) ([]byte, error) {
+func hashMessage(rawMessage io.Reader, hashFunc myhash.Hash) ([]byte, error) {
 	if rawMessage == nil {
 		return nil, errors.New("message cannot be nil")
 	}
-	if hashFunc == crypto.Hash(0) {
+	if hashFunc == myhash.Hash(0) {
 		return io.ReadAll(rawMessage)
 	}
 	hasher := hashFunc.New()

@@ -18,11 +18,12 @@ package fake
 import (
 	"context"
 	"crypto"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature"
-	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature"
+	sigkms "github.com/gobars/sigstore/pkg/signature/kms"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 // KmsCtxKey is used to look up the private key in the struct.
@@ -37,7 +38,7 @@ type SignerVerifier struct {
 const ReferenceScheme = "fakekms://"
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, _ string, hf crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, _ string, hf myhash.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		return LoadSignerVerifier(ctx, hf)
 	})
 }
@@ -45,7 +46,7 @@ func init() {
 // LoadSignerVerifier generates a signer/verifier using the default ECDSA signer or loads
 // a signer from a provided private key and hash. The context should contain a mapping from
 // a string "priv" to a crypto.PrivateKey (RSA, ECDSA, or ED25519).
-func LoadSignerVerifier(ctx context.Context, hf crypto.Hash) (*SignerVerifier, error) {
+func LoadSignerVerifier(ctx context.Context, hf myhash.Hash) (*SignerVerifier, error) {
 	val := ctx.Value(KmsCtxKey{})
 	if val == nil {
 		signer, _, err := signature.NewDefaultECDSASignerVerifier()
@@ -104,7 +105,7 @@ func (g *SignerVerifier) CreateKey(_ context.Context, _ string) (crypto.PublicKe
 
 type cryptoSignerWrapper struct {
 	ctx      context.Context
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	sv       *SignerVerifier
 	errFunc  func(error)
 }
@@ -117,7 +118,7 @@ func (c cryptoSignerWrapper) Public() crypto.PublicKey {
 	return pk
 }
 
-func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts myhash.SignerOpts) ([]byte, error) {
 	hashFunc := c.hashFunc
 	if opts != nil {
 		hashFunc = opts.HashFunc()
@@ -133,15 +134,15 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
-func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (myhash.Signer, myhash.SignerOpts, error) {
 	csw := &cryptoSignerWrapper{
 		ctx:      ctx,
 		sv:       g,
-		hashFunc: crypto.SHA256,
+		hashFunc: myhash.SHA256,
 		errFunc:  errFunc,
 	}
 
-	return csw, crypto.SHA256, nil
+	return csw, myhash.SHA256, nil
 }
 
 // SupportedAlgorithms returns a list with the default algorithm

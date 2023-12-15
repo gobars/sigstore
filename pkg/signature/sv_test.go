@@ -20,16 +20,16 @@ import (
 	"context"
 	"crypto"
 	crand "crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"strings"
 	"testing"
 
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 // Per golangci-lint `hashFunc` always receives `crypto.SHA256`
-func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, message []byte) { // nolint: unparam
+func testingSigner(t *testing.T, s Signer, alg string, hashFunc myhash.Hash, message []byte) { // nolint: unparam
 	t.Helper()
 
 	isED25519 := alg == "ed25519"
@@ -66,11 +66,11 @@ func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, mes
 		t.Errorf("unexpected error passing valid Digest: %v", err)
 	}
 
-	if _, err := s.SignMessage(bytes.NewReader(message), options.WithDigest(digest), options.WithCryptoSignerOpts(crypto.Hash(0))); err == nil && !isED25519 {
+	if _, err := s.SignMessage(bytes.NewReader(message), options.WithDigest(digest), options.WithCryptoSignerOpts(myhash.Hash(0))); err == nil && !isED25519 {
 		t.Error("no error passing invalid opts")
 	}
 
-	if _, err := s.SignMessage(bytes.NewReader(message), options.WithDigest(digest), options.WithCryptoSignerOpts(crypto.SHA512)); err == nil && !isED25519 {
+	if _, err := s.SignMessage(bytes.NewReader(message), options.WithDigest(digest), options.WithCryptoSignerOpts(myhash.SHA512)); err == nil && !isED25519 {
 		t.Error("no error passing mismatched Digest and opts")
 	}
 
@@ -78,9 +78,9 @@ func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, mes
 		t.Errorf("unexpected error passing nil options: %v", err)
 	}
 
-	cs, ok := s.(crypto.Signer)
+	cs, ok := s.(myhash.Signer)
 	if !ok {
-		t.Fatalf("expected crypto.Signer")
+		t.Fatalf("expected myhash.Signer")
 	}
 
 	if _, err := cs.Sign(nil, nil, nil); err == nil {
@@ -88,7 +88,7 @@ func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, mes
 	}
 
 	if isED25519 {
-		if _, err := cs.Sign(nil, message, crypto.Hash(0)); err != nil {
+		if _, err := cs.Sign(nil, message, myhash.Hash(0)); err != nil {
 			t.Errorf("unexpected error passing nil Rand, message and crypto.Hash(0) to Sign: %v", err)
 		}
 	}
@@ -97,11 +97,11 @@ func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, mes
 		t.Errorf("unexpected error passing nil for Rand and Opts to Sign: %v", err)
 	}
 
-	if _, err := cs.Sign(nil, digest, &rsa.PSSOptions{Hash: hashFunc}); err != nil && !isED25519 {
+	if _, err := cs.Sign(nil, digest, &myhash.BjcaPSSOptions{Hash: hashFunc}); err != nil && !isED25519 {
 		t.Errorf("unexpected error passing nil for Rand and valid Opts to Sign: %v", err)
 	}
 
-	if _, err := cs.Sign(crand.Reader, digest, &rsa.PSSOptions{Hash: hashFunc}); err != nil && !isED25519 {
+	if _, err := cs.Sign(crand.Reader, digest, &myhash.BjcaPSSOptions{Hash: hashFunc}); err != nil && !isED25519 {
 		t.Errorf("unexpected error passing valid Rand and valid Opts to Sign: %v", err)
 	}
 
@@ -131,7 +131,7 @@ func assertPublicKeyIsx509Marshalable(t *testing.T, pub crypto.PublicKey) {
 }
 
 // Per golangci-lint `hashFunc` always receives `crypto.SHA256`
-func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash, signature, message []byte) { // nolint: unparam
+func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc myhash.Hash, signature, message []byte) { // nolint: unparam
 	t.Helper()
 
 	isED25519 := alg == "ed25519"
@@ -167,7 +167,7 @@ func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash,
 		t.Errorf("unexpected error when using valid bytes.NewReader(message) with digest & opts: %v", err)
 	}
 
-	if err := v.VerifySignature(bytes.NewReader(signature), bytes.NewReader(message), options.WithDigest(digest), options.WithCryptoSignerOpts(crypto.SHA512)); err == nil && !isED25519 {
+	if err := v.VerifySignature(bytes.NewReader(signature), bytes.NewReader(message), options.WithDigest(digest), options.WithCryptoSignerOpts(myhash.SHA512)); err == nil && !isED25519 {
 		t.Error("no error when using mismatched hashFunc with digest & opts")
 	}
 }

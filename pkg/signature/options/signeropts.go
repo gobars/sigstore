@@ -16,23 +16,23 @@
 package options
 
 import (
-	"crypto"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 )
 
 // RequestCryptoSignerOpts implements the functional option pattern for supplying crypto.SignerOpts when signing or verifying
 type RequestCryptoSignerOpts struct {
 	NoOpOptionImpl
-	opts crypto.SignerOpts
+	opts myhash.SignerOpts
 }
 
 // ApplyCryptoSignerOpts sets crypto.SignerOpts as a functional option
-func (r RequestCryptoSignerOpts) ApplyCryptoSignerOpts(opts *crypto.SignerOpts) {
+func (r RequestCryptoSignerOpts) ApplyCryptoSignerOpts(opts *myhash.SignerOpts) {
 	*opts = r.opts
 }
 
 // WithCryptoSignerOpts specifies that provided crypto.SignerOpts be used during signing and verification operations
-func WithCryptoSignerOpts(opts crypto.SignerOpts) RequestCryptoSignerOpts {
-	var optsToUse crypto.SignerOpts = crypto.SHA256
+func WithCryptoSignerOpts(opts myhash.SignerOpts) RequestCryptoSignerOpts {
+	var optsToUse myhash.SignerOpts = myhash.SHA256
 	if opts != nil {
 		optsToUse = opts
 	}

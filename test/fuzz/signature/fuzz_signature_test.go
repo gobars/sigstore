@@ -17,18 +17,18 @@ package signature
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"math/big"
 	"testing"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/gobars/sigstore/pkg/signature"
 )
 
 func FuzzECDSASigner(f *testing.F) {
@@ -42,7 +42,7 @@ func FuzzECDSASigner(f *testing.F) {
 		x.D = z
 		x.Curve = elliptic.P384()
 
-		signer, err := signature.LoadECDSASignerVerifier(&x, crypto.SHA512)
+		signer, err := signature.LoadECDSASignerVerifier(&x, myhash.SHA512)
 		if err != nil {
 			if signer != nil {
 				t.Errorf("key %v is not nil when there is an error %v ", signer, err)
@@ -65,14 +65,14 @@ func FuzzECDSASigner(f *testing.F) {
 }
 func FuzzComputeDigest(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
-		hashFuncs := []crypto.Hash{
-			crypto.SHA256,
-			crypto.SHA512,
-			crypto.SHA384,
-			crypto.SHA224,
-			crypto.SHA1,
+		hashFuncs := []myhash.Hash{
+			myhash.SHA256,
+			myhash.SHA512,
+			myhash.SHA384,
+			myhash.SHA224,
+			myhash.SHA1,
 		}
-		data, _, err := signature.ComputeDigestForSigning(bytes.NewReader(data), crypto.SHA512, hashFuncs)
+		data, _, err := signature.ComputeDigestForSigning(bytes.NewReader(data), myhash.SHA512, hashFuncs)
 		if err != nil {
 			if data != nil {
 				t.Errorf("key %v is not nil when there is an error %v ", data, err)
@@ -84,14 +84,14 @@ func FuzzComputeDigest(f *testing.F) {
 
 func FuzzComputeVerifying(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
-		hashFuncs := []crypto.Hash{
-			crypto.SHA256,
-			crypto.SHA512,
-			crypto.SHA384,
-			crypto.SHA224,
-			crypto.SHA1,
+		hashFuncs := []myhash.Hash{
+			myhash.SHA256,
+			myhash.SHA512,
+			myhash.SHA384,
+			myhash.SHA224,
+			myhash.SHA1,
 		}
-		data, _, err := signature.ComputeDigestForVerifying(bytes.NewReader(data), crypto.SHA512, hashFuncs)
+		data, _, err := signature.ComputeDigestForVerifying(bytes.NewReader(data), myhash.SHA512, hashFuncs)
 		if err != nil {
 			if data != nil {
 				t.Errorf("key %v is not nil when there is an error %v ", data, err)
@@ -131,7 +131,7 @@ func FuzzRSAPKCS1v15SignerVerfier(f *testing.F) {
 		x := rsa.PrivateKey{}
 		f.GenerateStruct(&x)
 
-		signer, err := signature.LoadRSAPKCS1v15Signer(&x, crypto.SHA512)
+		signer, err := signature.LoadRSAPKCS1v15Signer(&x, myhash.SHA512)
 		if err != nil {
 			if signer != nil {
 				t.Errorf("key %v is not nil when there is an error %v ", signer, err)
@@ -158,7 +158,7 @@ func FuzzRSAPSSSignerVerfier(f *testing.F) {
 		if err != nil {
 			t.Skip()
 		}
-		signer, err := signature.LoadRSAPSSSignerVerifier(privateKey.(*rsa.PrivateKey), crypto.SHA512, nil)
+		signer, err := signature.LoadRSAPSSSignerVerifier(privateKey.(*rsa.PrivateKey), myhash.SHA512, nil)
 		if err != nil {
 			if signer != nil {
 				t.Errorf("key %v is not nil when there is an error %v ", signer, err)

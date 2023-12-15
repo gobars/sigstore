@@ -22,7 +22,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-jose/go-jose/v3"
-	soauth "github.com/sigstore/sigstore/pkg/oauth"
+	soauth "github.com/gobars/sigstore/pkg/oauth"
 	"golang.org/x/oauth2"
 )
 

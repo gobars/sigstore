@@ -21,7 +21,6 @@ package hashivault
 import (
 	"bytes"
 	"context"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"fmt"
@@ -32,8 +31,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"bica.cn/sigstore/sigstore/pkg/signature"
+	"bica.cn/sigstore/sigstore/pkg/signature/options"
 
 	vault "github.com/hashicorp/vault/api"
 )
@@ -44,7 +43,7 @@ type VaultSuite struct {
 }
 
 func (suite *VaultSuite) GetProvider(key string, opts ...signature.RPCOption) *SignerVerifier {
-	provider, err := LoadSignerVerifier(fmt.Sprintf("hashivault://%s", key), crypto.SHA256, opts...)
+	provider, err := LoadSignerVerifier(fmt.Sprintf("hashivault://%s", key), myhash.SHA256, opts...)
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
 	return provider
@@ -109,7 +108,7 @@ func (suite *VaultSuite) TestSign() {
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
-	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), myhash.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 }
@@ -133,7 +132,7 @@ func (suite *VaultSuite) TestSignOpts() {
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
-	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), myhash.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 }
@@ -150,7 +149,7 @@ func (suite *VaultSuite) TestSignSpecificKeyVersion() {
 	sig, err := provider.SignMessage(bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
-	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), myhash.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 
@@ -322,7 +321,7 @@ func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
-	verifier, err := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	verifier, err := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), myhash.SHA256)
 	assert.Nil(suite.T(), err)
 
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithContext(context.Background()))
@@ -333,7 +332,7 @@ func (suite *VaultSuite) TestInvalidPublicKey() {
 	var provider *SignerVerifier
 	var err error
 	assert.NotPanics(suite.T(), func() {
-		provider, _ = LoadSignerVerifier("hashivault://pki_int", crypto.SHA256)
+		provider, _ = LoadSignerVerifier("hashivault://pki_int", myhash.SHA256)
 		_, err = provider.client.fetchPublicKey(context.Background())
 	})
 	assert.NotNil(suite.T(), err)
@@ -351,7 +350,7 @@ func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePathOpts() {
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
-	verifier, err := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	verifier, err := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), myhash.SHA256)
 	assert.Nil(suite.T(), err)
 
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithContext(context.Background()))
@@ -377,7 +376,7 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 	pubKey, ok := k.(*ecdsa.PublicKey)
 	require.True(suite.T(), ok)
 
-	verifier, _ := signature.LoadECDSAVerifier(pubKey, crypto.SHA256)
+	verifier, _ := signature.LoadECDSAVerifier(pubKey, myhash.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 }
@@ -403,7 +402,7 @@ func (suite *VaultSuite) TestCryptoSigner() {
 	pubKey, ok := k.(*ecdsa.PublicKey)
 	require.True(suite.T(), ok)
 
-	verifier, _ := signature.LoadECDSAVerifier(pubKey, crypto.SHA256)
+	verifier, _ := signature.LoadECDSAVerifier(pubKey, myhash.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 }
@@ -467,13 +466,13 @@ func (suite *VaultSuite) TestBadSignature() {
 }
 
 func (suite *VaultSuite) TestNoProvider() {
-	provider, err := LoadSignerVerifier("hashi://nonsense", crypto.Hash(0))
+	provider, err := LoadSignerVerifier("hashi://nonsense", myhash.Hash(0))
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), provider)
 }
 
 func (suite *VaultSuite) TestInvalidHost() {
-	provider, err := LoadSignerVerifier("hashivault://keyname", crypto.SHA256,
+	provider, err := LoadSignerVerifier("hashivault://keyname", myhash.SHA256,
 		options.WithRPCAuthOpts(options.RPCAuth{Address: "https://unknown.example.com:8200"}))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), provider)

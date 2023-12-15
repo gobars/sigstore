@@ -17,17 +17,17 @@ package dsse
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"strings"
 	"testing"
 
+	"github.com/gobars/sigstore/pkg/signature"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
-	"github.com/sigstore/sigstore/pkg/signature"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -36,7 +36,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	sv, err := signature.LoadECDSASignerVerifier(p, myhash.SHA256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestMultiRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	sv, err := signature.LoadECDSASignerVerifier(p, myhash.SHA256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestMultiRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sv2, err := signature.LoadECDSASignerVerifier(p2, crypto.SHA256)
+	sv2, err := signature.LoadECDSASignerVerifier(p2, myhash.SHA256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestInvalidThresholdMultiRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	sv, err := signature.LoadECDSASignerVerifier(p, myhash.SHA256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestInvalidThresholdMultiRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sv2, err := signature.LoadECDSASignerVerifier(p2, crypto.SHA256)
+	sv2, err := signature.LoadECDSASignerVerifier(p2, myhash.SHA256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestInvalidSignature(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	v, err := signature.LoadECDSAVerifier(&p.PublicKey, crypto.SHA256)
+	v, err := signature.LoadECDSAVerifier(&p.PublicKey, myhash.SHA256)
 	if err != nil {
 		t.Fatal(err)
 	}

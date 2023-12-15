@@ -21,29 +21,30 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature/options"
 )
 
 // checked on LoadSigner, LoadVerifier, and SignMessage
-var rsaSupportedHashFuncs = []crypto.Hash{
-	crypto.SHA256,
-	crypto.SHA384,
-	crypto.SHA512,
+var rsaSupportedHashFuncs = []myhash.Hash{
+	myhash.SHA256,
+	myhash.SHA384,
+	myhash.SHA512,
 }
 
 // checked on VerifySignature. Supports SHA1 verification.
-var rsaSupportedVerifyHashFuncs = []crypto.Hash{
-	crypto.SHA1,
-	crypto.SHA256,
-	crypto.SHA384,
-	crypto.SHA512,
+var rsaSupportedVerifyHashFuncs = []myhash.Hash{
+	myhash.SHA1,
+	myhash.SHA256,
+	myhash.SHA384,
+	myhash.SHA512,
 }
 
 // RSAPSSSigner is a signature.Signer that uses the RSA PSS algorithm
 type RSAPSSSigner struct {
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	priv     *rsa.PrivateKey
 	pssOpts  *rsa.PSSOptions
 }
@@ -54,7 +55,7 @@ type RSAPSSSigner struct {
 // by the value passed to Sign().
 //
 // hf must be either SHA256, SHA388, or SHA512. opts.Hash is ignored.
-func LoadRSAPSSSigner(priv *rsa.PrivateKey, hf crypto.Hash, opts *rsa.PSSOptions) (*RSAPSSSigner, error) {
+func LoadRSAPSSSigner(priv *rsa.PrivateKey, hf myhash.Hash, opts *rsa.PSSOptions) (*RSAPSSSigner, error) {
 	if priv == nil {
 		return nil, errors.New("invalid RSA private key specified")
 	}
@@ -90,15 +91,16 @@ func (r RSAPSSSigner) SignMessage(message io.Reader, opts ...SignOption) ([]byte
 	}
 
 	rand := selectRandFromOpts(opts...)
+
 	pssOpts := r.pssOpts
 	if pssOpts == nil {
 		pssOpts = &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthAuto,
 		}
 	}
-	pssOpts.Hash = hf
+	pssOpts.Hash = crypto.Hash(hf)
 
-	return rsa.SignPSS(rand, r.priv, hf, digest, pssOpts)
+	return rsa.SignPSS(rand, r.priv, crypto.Hash(hf), digest, pssOpts)
 }
 
 // Public returns the public key that can be used to verify signatures created by
@@ -125,7 +127,7 @@ func (r RSAPSSSigner) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) 
 //
 // If opts are specified, they must be *rsa.PSSOptions. If opts are not specified, the hash function
 // provided when the signer was created will be assumed.
-func (r RSAPSSSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (r RSAPSSSigner) Sign(rand io.Reader, digest []byte, opts myhash.SignerOpts) ([]byte, error) {
 	rsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
 		rsaOpts = append(rsaOpts, options.WithCryptoSignerOpts(opts))
@@ -137,14 +139,14 @@ func (r RSAPSSSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts
 // RSAPSSVerifier is a signature.Verifier that uses the RSA PSS algorithm
 type RSAPSSVerifier struct {
 	publicKey *rsa.PublicKey
-	hashFunc  crypto.Hash
+	hashFunc  myhash.Hash
 	pssOpts   *rsa.PSSOptions
 }
 
 // LoadRSAPSSVerifier verifies signatures using the specified public key and hash algorithm.
 //
 // hf must be either SHA256, SHA388, or SHA512. opts.Hash is ignored.
-func LoadRSAPSSVerifier(pub *rsa.PublicKey, hashFunc crypto.Hash, opts *rsa.PSSOptions) (*RSAPSSVerifier, error) {
+func LoadRSAPSSVerifier(pub *rsa.PublicKey, hashFunc myhash.Hash, opts *rsa.PSSOptions) (*RSAPSSVerifier, error) {
 	if pub == nil {
 		return nil, errors.New("invalid RSA public key specified")
 	}
@@ -203,7 +205,7 @@ func (r RSAPSSVerifier) VerifySignature(signature, message io.Reader, opts ...Ve
 		}
 	}
 
-	return rsa.VerifyPSS(r.publicKey, hf, digest, sigBytes, pssOpts)
+	return rsa.VerifyPSS(r.publicKey, crypto.Hash(hf), digest, sigBytes, pssOpts)
 }
 
 // RSAPSSSignerVerifier is a signature.SignerVerifier that uses the RSA PSS algorithm
@@ -214,7 +216,7 @@ type RSAPSSSignerVerifier struct {
 
 // LoadRSAPSSSignerVerifier creates a combined signer and verifier using RSA PSS. This is
 // a convenience object that simply wraps an instance of RSAPSSSigner and RSAPSSVerifier.
-func LoadRSAPSSSignerVerifier(priv *rsa.PrivateKey, hf crypto.Hash, opts *rsa.PSSOptions) (*RSAPSSSignerVerifier, error) {
+func LoadRSAPSSSignerVerifier(priv *rsa.PrivateKey, hf myhash.Hash, opts *rsa.PSSOptions) (*RSAPSSSignerVerifier, error) {
 	signer, err := LoadRSAPSSSigner(priv, hf, opts)
 	if err != nil {
 		return nil, fmt.Errorf("initializing signer: %w", err)
@@ -233,18 +235,18 @@ func LoadRSAPSSSignerVerifier(priv *rsa.PrivateKey, hf crypto.Hash, opts *rsa.PS
 // NewDefaultRSAPSSSignerVerifier creates a combined signer and verifier using RSA PSS.
 // This creates a new RSA key of 2048 bits and uses the SHA256 hashing algorithm.
 func NewDefaultRSAPSSSignerVerifier() (*RSAPSSSignerVerifier, *rsa.PrivateKey, error) {
-	return NewRSAPSSSignerVerifier(rand.Reader, 2048, crypto.SHA256)
+	return NewRSAPSSSignerVerifier(rand.Reader, 2048, myhash.SHA256)
 }
 
 // NewRSAPSSSignerVerifier creates a combined signer and verifier using RSA PSS.
 // This creates a new RSA key of the specified length of bits, entropy source, and hash function.
-func NewRSAPSSSignerVerifier(rand io.Reader, bits int, hashFunc crypto.Hash) (*RSAPSSSignerVerifier, *rsa.PrivateKey, error) {
+func NewRSAPSSSignerVerifier(rand io.Reader, bits int, hashFunc myhash.Hash) (*RSAPSSSignerVerifier, *rsa.PrivateKey, error) {
 	priv, err := rsa.GenerateKey(rand, bits)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sv, err := LoadRSAPSSSignerVerifier(priv, hashFunc, &rsa.PSSOptions{Hash: hashFunc})
+	sv, err := LoadRSAPSSSignerVerifier(priv, hashFunc, &rsa.PSSOptions{Hash: crypto.Hash(hashFunc)})
 	if err != nil {
 		return nil, nil, err
 	}

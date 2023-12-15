@@ -23,6 +23,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
+	"github.com/jellydator/ttlcache/v3"
+	"github.com/mitchellh/go-homedir"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,16 +33,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gobars/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/signature"
+	sigkms "github.com/gobars/sigstore/pkg/signature/kms"
 	vault "github.com/hashicorp/vault/api"
-	"github.com/jellydator/ttlcache/v3"
-	"github.com/mitchellh/go-homedir"
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/signature"
-	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(_ context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+	sigkms.AddProvider(ReferenceScheme, func(_ context.Context, keyResourceID string, hashFunc myhash.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		return LoadSignerVerifier(keyResourceID, hashFunc, opts...)
 	})
 }
@@ -259,7 +260,7 @@ func (h *hashivaultClient) public() (crypto.PublicKey, error) {
 	return item.Value(), nil
 }
 
-func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
+func (h hashivaultClient) sign(digest []byte, alg myhash.Hash, opts ...signature.SignOption) ([]byte, error) {
 	client := h.client.Logical()
 
 	keyVersion := fmt.Sprintf("%d", h.keyVersion)
@@ -277,7 +278,7 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 
 	signResult, err := client.Write(fmt.Sprintf("/%s/sign/%s%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
 		"input":       base64.StdEncoding.Strict().EncodeToString(digest),
-		"prehashed":   alg != crypto.Hash(0),
+		"prehashed":   alg != myhash.Hash(0),
 		"key_version": keyVersion,
 	})
 	if err != nil {
@@ -292,7 +293,7 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 	return vaultDecode(encodedSignature, keyVersionUsedPtr)
 }
 
-func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
+func (h hashivaultClient) verify(sig, digest []byte, alg myhash.Hash, opts ...signature.VerifyOption) error {
 	client := h.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
@@ -325,7 +326,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 
 	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
 		"input":     base64.StdEncoding.EncodeToString(digest),
-		"prehashed": alg != crypto.Hash(0),
+		"prehashed": alg != myhash.Hash(0),
 		"signature": fmt.Sprintf("%s%s", vaultDataPrefix, encodedSig),
 	})
 	if err != nil {
@@ -362,16 +363,16 @@ func vaultDecode(data interface{}, keyVersionUsed *string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(prefixRegex.ReplaceAllString(encoded, ""))
 }
 
-func hashString(h crypto.Hash) string {
+func hashString(h myhash.Hash) string {
 	var hashStr string
 	switch h {
-	case crypto.SHA224:
+	case myhash.SHA224:
 		hashStr = "/sha2-224"
-	case crypto.SHA256:
+	case myhash.SHA256:
 		hashStr = "/sha2-256"
-	case crypto.SHA384:
+	case myhash.SHA384:
 		hashStr = "/sha2-384"
-	case crypto.SHA512:
+	case myhash.SHA512:
 		hashStr = "/sha2-512"
 	default:
 		hashStr = ""

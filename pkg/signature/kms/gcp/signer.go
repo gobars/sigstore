@@ -19,18 +19,19 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"hash/crc32"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	"github.com/gobars/sigstore/pkg/signature"
+	"github.com/gobars/sigstore/pkg/signature/options"
 	"google.golang.org/api/option"
 )
 
-var gcpSupportedHashFuncs = []crypto.Hash{
-	crypto.SHA256,
-	crypto.SHA512,
-	crypto.SHA384,
+var gcpSupportedHashFuncs = []myhash.Hash{
+	myhash.SHA256,
+	myhash.SHA512,
+	myhash.SHA384,
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using GCP KMS service
@@ -72,7 +73,7 @@ func LoadSignerVerifier(defaultCtx context.Context, referenceStr string, opts ..
 func (g *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	ctx := context.Background()
 	var digest []byte
-	var signerOpts crypto.SignerOpts
+	var signerOpts myhash.SignerOpts
 	var err error
 
 	signerOpts, err = g.client.getHashFunc()
@@ -136,7 +137,7 @@ func (g *SignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypt
 
 type cryptoSignerWrapper struct {
 	ctx      context.Context
-	hashFunc crypto.Hash
+	hashFunc myhash.Hash
 	sv       *SignerVerifier
 	errFunc  func(error)
 }
@@ -149,7 +150,7 @@ func (c cryptoSignerWrapper) Public() crypto.PublicKey {
 	return pk
 }
 
-func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts myhash.SignerOpts) ([]byte, error) {
 	hashFunc := c.hashFunc
 	if opts != nil {
 		hashFunc = opts.HashFunc()
@@ -165,7 +166,7 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
-func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (myhash.Signer, myhash.SignerOpts, error) {
 	defaultHf, err := g.client.getHashFunc()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting fetching default hash function: %w", err)

@@ -21,6 +21,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"errors"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"io"
 	"os"
 	"path/filepath"
@@ -29,7 +30,7 @@ import (
 	_ "crypto/sha256"
 	_ "crypto/sha512"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/gobars/sigstore/pkg/cryptoutils"
 
 	// these ensure we have the implementations loaded
 	_ "golang.org/x/crypto/sha3"
@@ -44,12 +45,12 @@ type Signer interface {
 // SignerOpts implements crypto.SignerOpts but also allows callers to specify
 // additional options that may be utilized in signing the digest provided.
 type SignerOpts struct {
-	Hash crypto.Hash
+	Hash myhash.Hash
 	Opts []SignOption
 }
 
 // HashFunc returns the hash function for this object
-func (s SignerOpts) HashFunc() crypto.Hash {
+func (s SignerOpts) HashFunc() myhash.Hash {
 	return s.Hash
 }
 
@@ -58,7 +59,7 @@ func (s SignerOpts) HashFunc() crypto.Hash {
 //
 // If privateKey is an RSA key, a RSAPKCS1v15Signer will be returned. If a
 // RSAPSSSigner is desired instead, use the LoadRSAPSSSigner() method directly.
-func LoadSigner(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Signer, error) {
+func LoadSigner(privateKey crypto.PrivateKey, hashFunc myhash.Hash) (Signer, error) {
 	switch pk := privateKey.(type) {
 	case *rsa.PrivateKey:
 		return LoadRSAPKCS1v15Signer(pk, hashFunc)
@@ -76,7 +77,7 @@ func LoadSigner(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Signer, err
 // If key is an RSA key, a RSAPKCS1v15Signer will be returned. If a
 // RSAPSSSigner is desired instead, use the LoadRSAPSSSigner() and
 // cryptoutils.UnmarshalPEMToPrivateKey() methods directly.
-func LoadSignerFromPEMFile(path string, hashFunc crypto.Hash, pf cryptoutils.PassFunc) (Signer, error) {
+func LoadSignerFromPEMFile(path string, hashFunc myhash.Hash, pf cryptoutils.PassFunc) (Signer, error) {
 	fileBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
