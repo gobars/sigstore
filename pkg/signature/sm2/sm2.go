@@ -9,6 +9,7 @@ import (
 	"encoding/asn1"
 	"encoding/binary"
 	"errors"
+	"github.com/gobars/sigstore/pkg/signature/myhash"
 	"github.com/gobars/sigstore/pkg/signature/myhash/sm3"
 	"golang.org/x/crypto/cryptobyte"
 	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
@@ -50,7 +51,25 @@ var one = new(big.Int).SetInt64(1)
 var two = new(big.Int).SetInt64(2)
 
 // sign format = 30 + len(z) + 02 + len(r) + r + 02 + len(s) + s, z being what follows its size, ie 02+len(r)+r+02+len(s)+s
-func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerOpts) ([]byte, error) {
+func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer myhash.SignerOpts) ([]byte, error) {
+	r, s, err := Sm2Sign(priv, msg, nil, random)
+	if err != nil {
+		return nil, err
+	}
+	var b cryptobyte.Builder
+	b.AddASN1(cbasn1.SEQUENCE, func(b *cryptobyte.Builder) {
+		b.AddASN1BigInt(r)
+		b.AddASN1BigInt(s)
+	})
+	return b.Bytes()
+}
+
+func (priv *PrivateKey) SignReader(random io.Reader, message io.Reader, signer myhash.SignerOpts) ([]byte, error) {
+
+	msg, err := io.ReadAll(message)
+	if err != nil {
+		return nil, err
+	}
 	r, s, err := Sm2Sign(priv, msg, nil, random)
 	if err != nil {
 		return nil, err
