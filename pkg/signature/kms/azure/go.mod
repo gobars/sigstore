@@ -11,7 +11,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.1
 	github.com/google/go-cmp v0.6.0
 	github.com/jellydator/ttlcache/v3 v3.1.0
-	github.com/gobars/sigstore v1.6.4
+	github.com/gobars/sigstore  v1.0.0
 	golang.org/x/crypto v0.16.0
 )
 
