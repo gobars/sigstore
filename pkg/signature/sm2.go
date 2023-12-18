@@ -149,7 +149,7 @@ func (e SM2Verifier) VerifySignature(signature, message io.Reader, opts ...Verif
 		return errors.New("no public key set for ECDSAVerifier")
 	}
 
-	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedVerifyHashFuncs, opts...)
+	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, sm2SupportedVerifyHashFuncs, opts...)
 	if err != nil {
 		return err
 	}
