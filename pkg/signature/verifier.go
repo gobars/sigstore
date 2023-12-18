@@ -22,6 +22,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"github.com/gobars/sigstore/pkg/signature/myhash"
+	"github.com/gobars/sigstore/pkg/signature/sm2"
 	"io"
 	"os"
 	"path/filepath"
@@ -46,8 +47,11 @@ func LoadVerifier(publicKey crypto.PublicKey, hashFunc myhash.Hash) (Verifier, e
 		return LoadRSAPKCS1v15Verifier(pk, hashFunc)
 	case *ecdsa.PublicKey:
 		return LoadECDSAVerifier(pk, hashFunc)
+	case *sm2.PublicKey:
+		return LoadSM2Verifier(pk, hashFunc)
 	case ed25519.PublicKey:
 		return LoadED25519Verifier(pk)
+
 	}
 	return nil, errors.New("unsupported public key type")
 }
@@ -74,6 +78,14 @@ func LoadUnsafeVerifier(publicKey crypto.PublicKey) (Verifier, error) {
 		return &ECDSAVerifier{
 			publicKey: pk,
 			hashFunc:  myhash.SHA1,
+		}, nil
+	case *sm2.PublicKey:
+		if pk == nil {
+			return nil, errors.New("invalid ECDSA public key specified")
+		}
+		return &SM2Verifier{
+			publicKey: pk,
+			hashFunc:  myhash.SM3,
 		}, nil
 	case ed25519.PublicKey:
 		return LoadED25519Verifier(pk)
