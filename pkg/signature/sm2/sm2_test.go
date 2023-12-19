@@ -56,7 +56,8 @@ func TestSm2(t *testing.T) {
 		fmt.Printf("Error: failed to decrypt: %v\n", err)
 	}
 	fmt.Printf("clear text = %s\n", d3)
-	msg, _ = ioutil.ReadFile("ifile")             // 从文件读取数据
+	msg = []byte("{\"critical\":{\"identity\":{\"docker-reference\":\"192.168.126.18:3004/footstone/centos7\"},\"image\":{\"docker-manifest-digest\":\"sha256:a733d44e66b0aea92c0f163a2b81b115b275505863c0de4f14a2c80691b15314\"},\"type\":\"cosign container image signature\"},\"optional\":null}")
+	// 从文件读取数据
 	sign, err := priv.Sign(rand.Reader, msg, nil) // 签名
 	if err != nil {
 		t.Fatal(err)

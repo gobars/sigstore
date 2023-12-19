@@ -149,9 +149,21 @@ func (e SM2Verifier) VerifySignature(signature, message io.Reader, opts ...Verif
 		return errors.New("no public key set for ECDSAVerifier")
 	}
 
-	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, sm2SupportedVerifyHashFuncs, opts...)
+	/*
+
+		digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, sm2SupportedVerifyHashFuncs, opts...)
+		if err != nil {
+			return err
+		} */
+
+	hashedWith := e.hashFunc
+	if !isSupportedAlg(hashedWith, sm2SupportedVerifyHashFuncs) {
+		return fmt.Errorf("unsupported hash algorithm: %q not in %v", hashedWith.String(), sm2SupportedVerifyHashFuncs)
+	}
+
+	rawMessage, err := io.ReadAll(message)
 	if err != nil {
-		return err
+		return fmt.Errorf("reading message: %w", err)
 	}
 
 	if signature == nil {
@@ -168,7 +180,7 @@ func (e SM2Verifier) VerifySignature(signature, message io.Reader, opts ...Verif
 		return fmt.Errorf("invalid ECDSA public key for %s", e.publicKey.Params().Name)
 	}
 
-	if !e.publicKey.Verify(digest, sigBytes) {
+	if !e.publicKey.Verify(rawMessage, sigBytes) {
 		return errors.New("invalid signature when validating ASN.1 encoded signature")
 	}
 
